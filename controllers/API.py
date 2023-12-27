@@ -286,13 +286,13 @@ def search_by_name(searchFor, language, order_by_popularity=False, limit=None, s
     5. TO DO: in English, we should remove apostrophe-s at the end of a word
     """
     lang_primary = language.split(',')[0].split("-")[0].lower()
-    base_colnames = ['id','ott','name','popularity']
+    base_colnames = ['id','ott','name','popularity', 'popularity_rank']
     if include_price:
         base_colnames += ['price']
     colnames = base_colnames + ['vernacular','extra_vernaculars']
     colname_map = {nm:index for index,nm in enumerate(colnames)}
 
-    ret = {"headers":colname_map, "leaf_hits":[], "node_hits":[], "lang":language}
+    ret = {"headers":colname_map, "leaf_hits":[], "node_hits":[], "lang":language, "tot_spp":0}
     try:
         originalSearchFor = searchFor
         searchFor = OZfunc.punctuation_to_space(searchFor).split()
@@ -333,6 +333,7 @@ def search_by_name(searchFor, language, order_by_popularity=False, limit=None, s
             initial_cols = ",".join(base_colnames)
             if tab=="ordered_nodes":
                 initial_cols = initial_cols.replace("price", "NULL AS price") #nodes don't have a price
+                initial_cols = initial_cols.replace("popularity_rank", "NULL AS popularity_rank") # nodes don't have a popularity rank
             query = 'select ' + initial_cols + ' from ' + tab + ' {0}'
             query += ' union select ' + initial_cols + ' from ' + tab + ' where ott in (select distinct ott from vernacular_by_ott {1})'
             query += ' union select ' + initial_cols + ' from ' + tab + ' where name in (select distinct name from vernacular_by_name {2})'
@@ -425,6 +426,9 @@ def search_by_name(searchFor, language, order_by_popularity=False, limit=None, s
                         pass #might reach here if the latin name has matched, but no vernaculars
         ret['leaf_hits'] = results.get('ordered_leaves')
         ret['node_hits'] = results.get('ordered_nodes')
+        # Copied from popularity.py
+        tot_spp = db.executesql("SELECT leaf_rgt FROM ordered_nodes WHERE id = 1;")[0][0]
+        ret['tot_spp'] = tot_spp
     except:
         pass  # Bad form here, but we always want to return *something* (even a blank)
 

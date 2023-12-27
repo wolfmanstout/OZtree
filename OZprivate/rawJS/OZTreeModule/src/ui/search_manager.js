@@ -266,12 +266,12 @@ class SearchManager {
     let newRes = []; // the variable we're going to return
     // do nodes first
     for (let i=0; i<res.node_hits.length; i++) {
-        newRes.push(this.compile_searchbox_data(toSearchFor, res.lang, res.node_hits[i], res.headers, false));
+        newRes.push(this.compile_searchbox_data(toSearchFor, res.lang, res.node_hits[i], res.headers, false, res.tot_spp));
         // results returned from API search automatically have language in them
     }
     // now do leaves
     for (let i=0; i<res.leaf_hits.length; i++) {
-        newRes.push(this.compile_searchbox_data(toSearchFor, res.lang, res.leaf_hits[i], res.headers, true));
+        newRes.push(this.compile_searchbox_data(toSearchFor, res.lang, res.leaf_hits[i], res.headers, true, res.tot_spp));
     }
     return newRes;
   }
@@ -281,19 +281,26 @@ class SearchManager {
    * Prepares a set of data including hit quality for searches of node (either leaf or interior node)
    * @return [common_name, sciname, ozid, score, [, extra_vernacular], pinpoint = "@latin=ott"]
    */
-  compile_searchbox_data(toSearchFor, lang, record, cols, is_leaf) {
+  compile_searchbox_data(toSearchFor, lang, record, cols, is_leaf, tot_spp) {
     // uses search match and pluralize
     let vernacular = record[cols["vernacular"]];
     let latinName  = record[cols["name"]];
     let ott = record[cols["ott"]];
     let id = record[cols["id"]];
     let extra_vernaculars = record[cols["extra_vernaculars"]];
+    let popularity_rank = record[cols["popularity_rank"]];
     let id_decider = is_leaf? -1:1;
     let tidy_common = vernacular ? capitalizeFirstLetter(vernacular) : null; // ready for printing in UI
     
     // "latin names" starting or ending with underscore are "fake" in OneZoom
     let row = [tidy_common, latinName && !latinName.startsWith("_") ? latinName : null, id * id_decider];
     let score_result = overall_search_score(toSearchFor, latinName, lang, vernacular, extra_vernaculars);
+    // Only leaves have comparable popularity scores.
+    if (is_leaf && tot_spp) {
+        // Use the popularity rank to adjust the score by a factor of 0.5 to 1.5, average 1.0.
+        // This way we don't bias towards species vs. higher taxa.
+        score_result[0] *= 0.5 + (1.0 - popularity_rank / (tot_spp + 1));
+    }
     if (score_result.length < 2) {
         row = row.concat(score_result)
     } else {
