@@ -29,6 +29,7 @@ class Midnode {
     this._signpost_common = false;
     this._threatened_branch = null;
     this._redlist = null;
+    this._redlist_counts = null;
     this._pic_filename = null;
     this._picID_credit = null;
     this._picID_src = null;
@@ -91,6 +92,7 @@ class Midnode {
     this._signpost_common = false;
     this._threatened_branch = null;
     this._redlist = null;
+    this._redlist_counts = null;
     this._pic_filename = null;
     this._picID_credit = null;
     this._picID_src = null;
@@ -424,6 +426,24 @@ class Midnode {
       this._redlist = _redlist;
     }
     return _redlist;
+  }
+  get redlist_counts() {
+    if (this._redlist_counts !== null) return this._redlist_counts;
+    if (!this.detail_fetched || this.richness_val <= 1) {
+      return { "NE": 0, "DD": 0, "LC": 0, "NT": 0, "VU": 0, "EN": 0, "CR": 0, "EW": 0, "EX": 0 };
+    }
+    this._redlist_counts = {
+      "NE": this.get_attribute("iucnNE"),
+      "DD": this.get_attribute("iucnDD"),
+      "LC": this.get_attribute("iucnLC"),
+      "NT": this.get_attribute("iucnNT"),
+      "VU": this.get_attribute("iucnVU"),
+      "EN": this.get_attribute("iucnEN"),
+      "CR": this.get_attribute("iucnCR"),
+      "EW": this.get_attribute("iucnEW"),
+      "EX": this.get_attribute("iucnEX"),
+    };
+    return this._redlist_counts;
   }
   get pic_filename() {
     if (this._pic_filename !== null) return this._pic_filename;
