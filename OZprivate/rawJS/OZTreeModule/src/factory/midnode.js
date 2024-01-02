@@ -430,7 +430,7 @@ class Midnode {
   get redlist_counts() {
     if (this._redlist_counts !== null) return this._redlist_counts;
     if (!this.detail_fetched || this.richness_val <= 1) {
-      return { "NE": 0, "DD": 0, "LC": 0, "NT": 0, "VU": 0, "EN": 0, "CR": 0, "EW": 0, "EX": 0 };
+      return null;
     }
     this._redlist_counts = {
       "NE": this.get_attribute("iucnNE"),
