@@ -330,18 +330,15 @@ function interior_node_color(node) {
 function branch_colour(node) {
   if (node.is_leaf) {
     return leafcolor1(node);
+  } else if (node._is_polytomy == true) {
+    return light_grey;
   } else if (node.richness_val > 1 & node.detail_fetched) {
     let color = get_average_leaf_color(node);
     if (color) {
       return color;
     }
   }
-  if (node._is_polytomy == true)
-  {
-      return light_grey;
-  } else {
-      return grey;
-  }
+  return grey;
 }
 
 const theme = {
