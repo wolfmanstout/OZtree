@@ -299,7 +299,7 @@ class SearchManager {
     if (is_leaf && tot_spp) {
         // Use the popularity rank to adjust the score by a factor of 0.5 to 1.5, average 1.0.
         // This way we don't bias towards species vs. higher taxa.
-        score_result[0] *= 0.5 + (1.0 - popularity_rank / (tot_spp + 1));
+        score_result[0] *= 1.5 - popularity_rank / tot_spp;
     }
     if (score_result.length < 2) {
         row = row.concat(score_result)
