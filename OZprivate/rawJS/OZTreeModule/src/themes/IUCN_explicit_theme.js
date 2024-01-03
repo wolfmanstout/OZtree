@@ -295,6 +295,9 @@ function get_color_components(color) {
 
 function get_average_leaf_color(node) {
   let redlist_counts = node.redlist_counts;
+  if (!redlist_counts) {
+    return null;
+  }
   let total_count = 0;
   let total_red = 0;
   let total_green = 0;
@@ -308,7 +311,7 @@ function get_average_leaf_color(node) {
     total_count += redlist_counts[key];
   }
   if (total_count == 0 || total_count < node.richness_val * 0.5) {
-    return "";
+    return null;
   }
   let average_red = total_red / total_count;
   let average_green = total_green / total_count;
