@@ -276,10 +276,21 @@ function update_location_menu(loc_root) {
       $('<li>').addClass('toploc').append(
           $('<a>').append(OZstrings["Current location"])));
   // add the main elements, in reverse order
-  for (var i = my_location_names.length-1; i >= 0; i--)
-  {
-    {{if is_testing:}}console.log("adding '" + my_location_names[i] + "' with richness " + my_location_richness[i+1] + " / " +my_location_richness[i]);{{pass}}
+  var filtered_location_names = []
+  var filtered_location_codes = []
+  var filtered_location_richness = []
+  for (var i = 0; i < my_location_names.length-1; i++) {
     var richnessProportion = my_location_richness[i+1]/my_location_richness[i];
+    if (richnessProportion < 0.5) {
+      filtered_location_names.push(my_location_names[i]);
+      filtered_location_codes.push(my_location_codes[i]);
+      filtered_location_richness.push(my_location_richness[i]);
+    }
+  }
+  for (var i = filtered_location_names.length-1; i >= 0; i--)
+  {
+    {{if is_testing:}}console.log("adding '" + filtered_location_names[i] + "' with richness " + filtered_location_richness[i+1] + " / " +filtered_location_richness[i]);{{pass}}
+    var richnessProportion = filtered_location_richness[i+1]/filtered_location_richness[i];
     richnessProportion = Math.min(richnessProportion, 1.0-6.0/$('#locationDropdown').width()); //never have richness prop = 1 (looks odd): always add 6 px on
     var richnessRemainder = Math.floor((1.0 - richnessProportion)/2.0 * $('#locationDropdown').width());
     var richnessWidth = $('#locationDropdown').width()-2*richnessRemainder;
@@ -290,7 +301,7 @@ function update_location_menu(loc_root) {
         .append(
           $('<a>')
             .css('margin-left', '-' + richnessRemainder + 'px')
-            .data('pinpoint', '@_ozid=' + my_location_codes[i])
+            .data('pinpoint', '@_ozid=' + filtered_location_codes[i])
             .click(function() { /* close And Fly */
               if (((document.getElementById("locationDropdown").offsetWidth)*2) > onezoom.tree_state.widthres) {
                 {{if is_testing:}}console.log("Small screen width detected, so closing location box before jump");{{pass}}
@@ -298,7 +309,7 @@ function update_location_menu(loc_root) {
               };
               onezoom.controller.default_move_to($(this).data('pinpoint'));
             })
-            .append(my_location_names[i] + "<br>(" + onezoom.utils.number_convert(my_location_richness[i]) + ")")
+            .append(filtered_location_names[i] + "<br>(" + onezoom.utils.number_convert(filtered_location_richness[i]) + ")")
         )
     );
   }
