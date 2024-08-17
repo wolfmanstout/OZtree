@@ -279,12 +279,15 @@ function update_location_menu(loc_root) {
   var filtered_location_names = []
   var filtered_location_codes = []
   var filtered_location_richness = []
-  for (var i = 0; i < my_location_names.length-1; i++) {
+  filtered_location_names.push(my_location_names[0]);
+  filtered_location_codes.push(my_location_codes[0]);
+  filtered_location_richness.push(my_location_richness[0]);
+  for (var i = 1; i < my_location_names.length-1; i++) {
     var richnessProportion = my_location_richness[i+1]/my_location_richness[i];
     if (richnessProportion < 0.5) {
-      filtered_location_names.push(my_location_names[i]);
-      filtered_location_codes.push(my_location_codes[i]);
-      filtered_location_richness.push(my_location_richness[i]);
+      filtered_location_names.push(my_location_names[i+1]);
+      filtered_location_codes.push(my_location_codes[i+1]);
+      filtered_location_richness.push(my_location_richness[i+1]);
     }
   }
   for (var i = filtered_location_names.length-1; i >= 0; i--)
