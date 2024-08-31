@@ -79,27 +79,31 @@ function leafcolor1(node) {
 
 function get_redlist_color(node) {
   // this is for the colour of the interior of a leaf
-  switch(node.redlist) {
+  return get_redlist_color_for_code(node.redlist);
+}
+
+function get_redlist_color_for_code(code) {
+  switch (code) {
     case "EX":
-          return black;
+      return black;
     case "EW":
-          return black;
+      return black;
     case "CR":
-          return red;
+      return red;
     case "EN":
-          return light_red;
+      return light_red;
     case "VU":
-          return light_red;
+      return light_red;
     case "NT":
-          return light_green;
+      return light_green;
     case "LC":
-          return light_green;
+      return light_green;
     case "DD":
-          return light_grey;
+      return light_grey;
     case "NE":
-          return light_grey;
+      return light_grey;
     default:
-          return light_grey;
+      return light_grey;
   }
 }
 
@@ -277,13 +281,58 @@ function get_leaf_text_fill(node) {
     }
 }
 
+function get_color_components(color) {
+  // Formatted as "rgb(r,g,b)"
+  let components = color.substring(4, color.length-1).split(',');
+  if (components.length != 3) {
+    return [0, 0, 0];
+  }
+  for (let i = 0; i < components.length; i++) {
+    components[i] = parseInt(components[i]);
+  }
+  return components;
+}
+
+function get_average_leaf_color(node) {
+  let redlist_counts = node.redlist_counts;
+  if (!redlist_counts) {
+    return null;
+  }
+  let total_count = 0;
+  let total_red = 0;
+  let total_green = 0;
+  let total_blue = 0;
+  for (let key in redlist_counts) {
+    if (key == 'DD' || key == 'NE') continue;  // Don't average missing data.
+    let components = get_color_components(get_redlist_color_for_code(key));
+    total_red += components[0] * redlist_counts[key];
+    total_green += components[1] * redlist_counts[key];
+    total_blue += components[2] * redlist_counts[key];
+    total_count += redlist_counts[key];
+  }
+  if (total_count == 0 || total_count < node.richness_val * 0.5) {
+    return null;
+  }
+  let average_red = total_red / total_count;
+  let average_green = total_green / total_count;
+  let average_blue = total_blue / total_count;
+  return 'rgb(' + Math.round(average_red) + ',' + Math.round(average_green) + ',' + Math.round(average_blue) + ')';
+}
+
+function interior_node_color(node) {
+  let color = get_average_leaf_color(node);
+  return color ? color : grey;
+}
+
 function branch_colour(node) {
-    if (node._is_polytomy == true)
-    {
-        return light_grey;
-    } else {
-        return grey;
-    }
+  if (node.is_leaf) {
+    return leafcolor1(node);
+  } else if (node._is_polytomy == true) {
+    return light_grey;
+  } else {
+    let color = get_average_leaf_color(node);
+    return color ? color : grey;
+  }
 }
 
 const theme = {
@@ -356,7 +405,7 @@ const theme = {
     },
     circle: {
       stroke: light_grey,
-      fill: grey
+      fill: interior_node_color,
     },
     circle_searchin: {
       stroke: half_transparent_white
