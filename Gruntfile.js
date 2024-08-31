@@ -41,6 +41,7 @@ module.exports = function (grunt) {
           '( [ -d applications/examples ] && rm -r -- "applications/examples" || true )',
           '( [ -f applications/OZtree/private/appconfig.ini ] || { cp applications/OZtree/private/appconfig.ini.example applications/OZtree/private/appconfig.ini ; echo "****** edit private/appconfig.ini"; exit 1; } )',
           preferred_python3  + ' -m venv .',
+          venv_python  + ' -m pip install --upgrade pip',
           './bin/pip install -r applications/OZtree/requirements.txt',
           // Make web2py.py use the venv
           'mv web2py.py web2py.py.o',
@@ -80,7 +81,7 @@ module.exports = function (grunt) {
         }
       },
       make_release_info: {
-        command: 'git describe --tags > RELEASE_INFO && ' + venv_python + ' OZprivate/ServerScripts/Utilities/get_release_name.py RELEASE_INFO >> RELEASE_INFO'
+        command: 'git describe --tags --always > RELEASE_INFO && ' + venv_python + ' OZprivate/ServerScripts/Utilities/get_release_name.py RELEASE_INFO >> RELEASE_INFO'
       },
       test_server: {
         command: function () {

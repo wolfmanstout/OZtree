@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+
+# Write uwsgi logs to /tmp instead of /var/log because the latter fails on Google Cloud Run.
+exec /usr/local/bin/uwsgi --master --die-on-term --emperor /etc/uwsgi --uid www-data --gid www-data --logto /tmp/uwsgi.log
