@@ -28,24 +28,37 @@ RUN npm install
 # Compile dev instead of prod to avoid pyc compatibility issues.
 RUN grunt dev
 
-FROM us-central1-docker.pkg.dev/onezoom-433004/my-docker-repo/oztree-with-iucn
+FROM us-central1-docker.pkg.dev/onezoom-433004/my-docker-repo/oztree-with-iucn as update_database
 RUN rm -rf /opt/web2py/applications/* && find /opt/web2py -mindepth 1 -maxdepth 1 ! -name 'applications' -exec rm -rf {} +
-RUN echo "Contents after rm: " $(ls -l -R /opt/web2py | wc -l)
 COPY --from=compile_web2py /opt/web2py /opt/web2py
 RUN rm -f /opt/web2py/applications/OZtree/databases/*.table
 COPY --from=us-central1-docker.pkg.dev/onezoom-433004/my-docker-repo/oztree-with-iucn /opt/web2py/applications/OZtree/databases/*.table /opt/web2py/applications/OZtree/databases/
 COPY uwsgi.ini /etc/uwsgi/uwsgi.ini
+RUN /sbin/my_init & \
+    until curl -N -i -s -L http://localhost/OZtree | head -n 1  | cut -d ' ' -f2 | grep -q 200; \
+      do \
+        sleep 10;\
+        echo "Waiting for server ... "; \
+      done; \
+    echo "Server active - waiting 5 secs for web2py to create database description files"; \
+    sleep 5; \
+    echo "Force setting indexes - 1091 ERRORs about failing to DROP indexes are harmless and can be ignored"; \
+    mysql "OneZoom" -f -h localhost -u "oz" -p"passwd" \
+      < /opt/web2py/applications/OZtree/OZprivate/ServerScripts/SQL/create_db_indexes.sql;
+
+FROM onezoom/docker-nginx-web2py-min-mysql:8.0 as final
+ENV MYSQL_DATABASE=''
+ENV MYSQL_USERNAME=''
+ENV MYSQL_PASSWORD=''
+# use a permanent data dir (i.e. not /var/lib/mysql) so the data is not overwritten
+ENV MYSQL_DATA_DIR=/var/lib/mysql_permanent
+# copy the DB files from the previous image
+COPY --from=update_database "/var/lib/mysql_permanent" "${MYSQL_DATA_DIR}"
+COPY --from=update_database /opt/web2py /opt/web2py
+COPY uwsgi.ini /etc/uwsgi/uwsgi.ini
 COPY uwsgi.runit /etc/service/uwsgi/run
 RUN chmod 777 /etc/service/uwsgi/run
-RUN /sbin/my_init & \
-    ( \
-      until curl -N -i -s -L http://localhost/OZtree | head -n 1  | cut -d ' ' -f2 | grep -q 200; \
-      do \
-        sleep 10; \
-        echo 'Waiting for server to update database schema... '; \
-      done; \
-      echo 'Schema updated.'; \
-    )
+EXPOSE 80
 CMD tail -F /tmp/uwsgi.log >>/var/log/uwsgi/uwsgi.log & \
     ( \
       until curl -N -i -s -L http://localhost/OZtree | head -n 1  | cut -d ' ' -f2 | grep -q 200; \
