@@ -350,6 +350,8 @@ def reservation_confirm_payment(basket_code, total_paid_pence, basket_fields):
                 # Renewal of expired entry, bump verified_time, keep old reserve time
                 fields_to_update['verified_time'] = request.now
                 fields_to_update['reserve_time'] = prev_row.reserve_time
+                # NB: The default of username is "", not None, so "r[k] is None" below may not notice - https://github.com/OneZoom/OZtree/issues/645
+                fields_to_update["username"] = prev_row.username
                 if prev_row.partner_name:
                     fields_to_update['partner_name'] = prev_row.partner_name
 
@@ -894,6 +896,12 @@ def sponsor_renew_request_logic(user_identifier, mailer=None, reveal_private_dat
                 else:
                     info = '%s, so cannot send email' % reason
             else:
+                if current.globalenv['is_testing']:
+                    if info:
+                       info += " (NB: set is_testing to False to send to the user's email address)"
+                    else:
+                        info = "set is_testing to False to send to the user's email address"
+
                 # Should send to the admin address if is_testing == True
                 mail.send(**mailargs)
         elif reveal_private_data:

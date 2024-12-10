@@ -26,7 +26,7 @@ request.vars.links = setup_params['UI_layer']['vars'].get('links')
 }}
   <title>OneZoom Tree of Life Explorer, text page for {{=page_info.get('title_name')}}</title>
   {{if response.canonical:}}<link rel="canonical" href="{{=response.canonical}}" />{{pass}}
-{{include 'web2py_ajax.html' #only really needed for web2py ajax loading in sponsor_node tab (must be above the UIkit lines)}}
+  {{include 'web2py.html' # must be above the UIkit lines}}
   <link rel="stylesheet" href="{{=URL('static','uikit-3/css/uikit.min.css')}}" />
   <script src="{{=URL('static','uikit-3/js/uikit.min.js')}}"></script>
   <script src="{{=URL('static','uikit-3/js/uikit-icons.min.js')}}"></script>
@@ -34,9 +34,9 @@ request.vars.links = setup_params['UI_layer']['vars'].get('links')
   <link rel="stylesheet" type="text/css" href="{{=URL('static', 'css/OZ_shared.css')}}" />
   {{if is_testing:}}<script>window.is_testing = true;</script>{{pass}}
   <!-- do not change the next line in any way. The exact format is used for partial installs -->
-  <div id="OZ_js_modules" data-include="../static/OZTreeModule/dist/OZ_main.html">
-  {{include "../static/OZTreeModule/dist/OZ_main.html"}}
-  {{include '../static/OZTreeModule/dist/OZui.html'}}
+  <div id="OZ_js_modules" data-include="../static/OZTreeModule/dist/OZentry.html ../static/OZTreeModule/dist/OZui.html">
+    {{include '../static/OZTreeModule/dist/OZentry.html'}}
+    {{include '../static/OZTreeModule/dist/OZui.html'}}
   </div>
 
   <!-- treeviewer constants -->
@@ -103,7 +103,7 @@ request.vars.links = setup_params['UI_layer']['vars'].get('links')
     };
     
     /* called when the API returns with details about contents of the linkouts window */
-    globals.UI_callbacks.populateLinkouts = function(responseJSON, initialSelected) {
+    globals.UI_callbacks.populateLinkouts = function(responseJSON, initialSelected, searchResultToPush) {
         console.log("populating linkout tabs with API data from", responseJSON);
       {{if is_testing:}}console.log("populating linkout tabs with API data from", responseJSON);{{pass}}
       if (initialSelected) {
@@ -161,6 +161,9 @@ request.vars.links = setup_params['UI_layer']['vars'].get('links')
       load_tab($("#external-modal .popup-container li").eq(select_tab_index));
       $('#external-modal .tab-loading-info').hide();
       $('#external-modal .external-content').show();
+      if (searchResultToPush) {
+        OZui.push_recent_place(searchResultToPush);
+      }
     };
 
   </script>
@@ -224,7 +227,7 @@ function closeAndLeap(event, href, original_searchbox, input_type) {
         onezoom.controller.default_move_to(href, 'ancestor');
     } else {
         // Strip /life/ from any URL, update tree state
-        onezoom.controller.set_treestate(href.replace(/^\/[A-Z_\-/]+/i, ''));
+        onezoom.controller.set_treestate(href.replace(/^\/[A-Z_\-/.]+/i, ''));
     }
 }
 
@@ -294,7 +297,7 @@ function update_location_menu(loc_root) {
             .click(function() { /* close And Fly */
               if (((document.getElementById("locationDropdown").offsetWidth)*2) > onezoom.tree_state.widthres) {
                 {{if is_testing:}}console.log("Small screen width detected, so closing location box before jump");{{pass}}
-                $("#locationDropdown").hide();
+                UIkit.dropdown($("#locationDropdown")).hide();
               };
               onezoom.controller.default_move_to($(this).data('pinpoint'));
             })
@@ -445,6 +448,7 @@ function add_advanced_searchbox(result, highlight) {
         event.stopPropagation();
 
         var elItem = event.target.closest('dd');
+        OZui.add_element_to_recents_list(elItem);
         if ($(elItem).attr('data-pinpoint')) {
           UI_reset_marked($(event.currentTarget).closest('.searchbox'), {
             // Recreate a compile_searchbox_data() format
@@ -481,6 +485,7 @@ function add_advanced_searchbox(result, highlight) {
             }
             if (search_term.length==0) {
                 $('.popular_species', dropdown).show();
+                $('.recents', dropdown).show();
                 {{if is_testing:}}console.log("Hiding no_result section of dropdown");{{pass}}
                 $('.no_results', dropdown).hide();
                 $('.search_hits', dropdown).empty();
@@ -510,8 +515,10 @@ function add_advanced_searchbox(result, highlight) {
             }
             }
         });
-        
+    
+    console.log("Adding advanced search box");
     OZui.setup_location_list($('.popular_species', box_selector), locations_json);
+    OZui.setup_recents_list($('.recents', box_selector));
 
     // Set-up from initial parameters
     // Reconstitute compile_searchbox_data() format
@@ -612,7 +619,7 @@ function setupUI() {
     $('select#treepage').val('{{=request.function}}');
     $('select#treepage').change(function() {
         /* slighly yucky function here - to go to the same location on another tree (another page), we 
-           replace the current url parameter (e.g. life.html, linnean.html, etc) with the
+           replace the current url parameter (e.g. `life/`, `linnean/`, etc) with the
            new value, by search-and-replace in the location.pathname component. We then paste
            the url back together again as "origin + new_pathname + search + hash" */
         window.location.href= window.location.origin + 
@@ -697,6 +704,7 @@ function setupUI() {
         event.stopPropagation();
 
         var ddEl = event.target.closest('dd');
+        OZui.add_element_to_recents_list(ddEl);
         var href = $(ddEl).find('a').attr('href');
         if (href) closeAndLeap(event, href, $('#searchnav .search-basic'));
       });
@@ -713,6 +721,7 @@ function setupUI() {
         var dropdown = $('.search_dropdown', searchbox);
         if (search_term.length==0) {
             $('.popular_species', dropdown).show();
+            $('.recents', dropdown).show();
             {{if is_testing:}}console.log("Hiding no_result section of dropdown");{{pass}}
             $('.no_results', dropdown).hide();
             $('.search_hits', dropdown).empty();
@@ -967,6 +976,7 @@ function setupUI() {
     });
 
     OZui.setup_location_list($('#searchnav .search-basic .popular_species'), locations_json);
+    OZui.setup_recents_list($('#searchnav .search-basic .recents'));
 
     // Give treeviewer a chance to parse state, then configure advanced search if on
     window.setTimeout(function () {
