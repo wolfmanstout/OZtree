@@ -185,7 +185,7 @@ If everything works, restart both.
 ## Database explorer
 
 (optional) We find it useful to have a GUI interface to connect to the database and run SQL scripts, this can be used instead of using MySQL command line (similar to Windows command line) that is installed by default with MySQL.
-On Mac OS X we use the (excellent) http://www.sequelpro.com.
+On Mac OS X we use the (excellent) https://sequel-ace.com.
 On windows you could try http://www.mysql.com/products/workbench/ or https://www.quest.com/products/toad-for-mysql/
 Under windows, [SQL Workbench](https://www.mysql.com/products/workbench/) can also be used, even if your MySQL server is installed under WSL2.
 
@@ -210,7 +210,7 @@ When web2py is run, it will print instructions telling how to shut down the web2
 
 `models` stores the python back end server code.
 
-`static` stores all static files including images, css, and compiled js. Files which are output by various server processes are stored in `FinalOutputs`. This includes very large numbers of thumbnail images (stored in `FinalOutputs/pics`) and static data files such as the tree topology and the tree cut positions (stored in `FinalOutputs/data`). The OZTreeModule folder contains the compiled version of most of the core OneZoom code. `static/OZLegacy` contains most of the old trees.
+`static` stores all static files including images, css, and compiled js. Files which are output by various server processes are stored in `FinalOutputs`. This includes very large numbers of thumbnail images (stored in `FinalOutputs/img`) and static data files such as the tree topology and the tree cut positions (stored in `FinalOutputs/data`). The OZTreeModule folder contains the compiled version of most of the core OneZoom code. `static/OZLegacy` contains most of the old trees.
 
 `views` is where all the html is stored - it's OK to just use raw html in here if no server side functions are needed for that particular page.
 
@@ -299,7 +299,7 @@ Notes
 ### Server unit tests
 
 **NB:** The server tests are not sandboxed, so have the potential to delete database data.
-On run on a personal instance where data loss does not matter.
+You are advided to run this on a personal instance where data loss does not matter.
 
 The server unit tests have no additional dependencies. To run, do:
 

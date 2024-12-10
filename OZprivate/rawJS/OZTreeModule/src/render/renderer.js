@@ -1,7 +1,6 @@
 import tree_state from '../tree_state';
 import config from '../global_config';
 import {global_button_action} from '../button_manager';
-import {is_on_mobile} from '../util/index';
 /**
  * Renderer controls how to render and routes different shapes to different sub renderers to render
  */
@@ -11,6 +10,8 @@ let last_yp = null;
 let last_ws = null;
 let last_btn_data = null;
 let last_btn_action = null;
+let last_button_x = null;
+let last_button_y = null;
 
 //Do not skip refresh when render_id = 60, 120, 180... because we want to refresh page when node details or images get fetched.
 let render_id = 0;
@@ -19,10 +20,9 @@ let controller = null;
 let context = null;
 let temp_context = null;
 let canvas = null;
+let scale_factor = 1;
 let bg_canvas = null;
 let bg_context = null;
-
-let last_draw_by_redraw = true;
   
 function add_controller(_c) {
   controller = _c;
@@ -31,11 +31,12 @@ function add_controller(_c) {
 function setup_canvas(_c) {
   canvas = _c;
   context = canvas.getContext("2d");
+  scale_factor = window.devicePixelRatio;
   if (!bg_canvas) {
     bg_canvas = document.createElement('canvas');
     bg_context = bg_canvas.getContext('2d');
   }
-  bg_canvas.width = _c.width;
+  bg_canvas.width = _c.width;  // setting width/height resets context
   bg_canvas.height = _c.height;
 }
 
@@ -59,20 +60,33 @@ function refresh(root) {
   let start = new Date().getTime();
   let shapes = [];
 
-  if (need_refresh()) {
+  const cursor_moved = tree_state.button_x != last_button_x || tree_state.button_y != last_button_y;
+
+  if (cursor_moved) {
+    last_button_x = tree_state.button_x;
+    last_button_y = tree_state.button_y;
+    // get the shapes early so we see global_button_action changes in need_refresh
     controller.projection.get_shapes(root, shapes);
-    if (is_on_mobile && tree_state.is_dragging()) {
-      refresh_by_image(shapes);
-    } else {
-      refresh_by_redraw(shapes, context);
-      let end = new Date().getTime();
-      adjust_threshold(end-start);
-      record_view_position();
+  }
+
+  if (need_refresh()) {
+    if (!cursor_moved) {
+      controller.projection.get_shapes(root, shapes);
     }
+    update_cursor();
+    refresh_by_redraw(shapes, context);
+    let end = new Date().getTime();
+    adjust_threshold(end-start);
+    record_view_position();
     release_shapes(shapes);
   }
 }
 
+function update_cursor() {
+  // If cursor wasn't set here (e.g. was set by mouse interactor), leave it as it is.
+  if (canvas.style.cursor && !["move", "pointer", "default"].includes(canvas.style.cursor)) return;
+  canvas.style.cursor = tree_state.mouse_hold ? "move" : (global_button_action.action ? "pointer" : "default");
+}
 
 /**
  * This function would first dynamically develop undeveloped parts.
@@ -110,46 +124,14 @@ function need_refresh() {
 
   if (render_id % 60 === 0) return true;
   if (tree_state.xp != last_xp || tree_state.yp != last_yp || tree_state.ws != last_ws) return true;
-  if (!areEqual(global_button_action.action,last_btn_action)) return true
+  if (!areEqual(global_button_action.action,last_btn_action)) return true;
   if (!areEqual(global_button_action.data,last_btn_data)) return true;
   return false;
 }
 
-function refresh_by_image(shapes) {
-  if (last_draw_by_redraw) {
-    /**
-     ************************************************************************************
-     ***********Solve issue: page turning blank while pinching and then panning***********
-     ************************************************************************************
-     *
-     *
-     * The commented code would possibly result in blank image while pinching and then move.
-     * Because refresh is fired by timer rather than mouse or touch event, front canvas does
-     * not precisely reflect the current tree_state.xp and tree_state.yp.
-     *
-     * Suppose frame 1 is drawn at (0, 0), and last_xp and last_yp is set to (0, 0)
-     * When the xp and yp changed to (2000, 2000) before frame 2, if we draw frame 2 by image, then it 
-     * would first cache frame 1 in background canvas, then draw background canvas onto front canvas
-     * with a shift of (2000, 2000). Clearly, most phones would fail to display any information because (2000, 2000)
-     * is off the screen in frame 1.
-     * .
-     *
-     * In our uncomment code, we draw current view on background canvas by repaint and then reset last_xp and last_yp to (1000,1000).
-     *
-     * Dramatically change in xp and yp while pinching is the real reason behind this issue. In pure panning, xp and yp changes are
-     * so small that we wouldn't worry about shifting the background image and partial blank area is often reasonable and acceptable.
-     */
-    refresh_by_redraw(shapes, bg_context);
-    record_view_position();
-    // bg_context.clearRect(0, 0, tree_state.widthres, tree_state.heightres);
-    // bg_context.drawImage(canvas, 0, 0);
-  }
-  context.clearRect(0,0,tree_state.widthres,tree_state.heightres);
-  context.drawImage(bg_canvas, tree_state.xp - last_xp, tree_state.yp - last_yp);
-  last_draw_by_redraw = false;
-}
-
 function refresh_by_redraw(shapes, _context) {
+  _context.resetTransform();
+  _context.scale(scale_factor, scale_factor);
   _context.clearRect(0,0,tree_state.widthres,tree_state.heightres);
   let length = shapes.length;
   for (let i=0; i<length; i++) {
@@ -159,7 +141,6 @@ function refresh_by_redraw(shapes, _context) {
      */
     shapes[i].render(_context);
   }
-  last_draw_by_redraw = true;
 }
 
 

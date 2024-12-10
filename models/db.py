@@ -42,7 +42,7 @@ else:
 ## Configure i18n
 T.set_current_languages('en', 'en-en')
 # Allow translators to add new languages e.g. on the test (beta) site, but not on prod
-T.is_writable = is_testing
+T.is_writable = is_testing and myconf.get('general.allow_translation_string_writing')
 #ALL pages can set ?lang=XXX to override the browser default for translating strings
 if request.vars.lang:
     T.force(request.vars.lang)
@@ -245,7 +245,7 @@ db.define_table('ordered_nodes',
     Field('wikidata', type='integer'),
     Field('wikipedia_lang_flag', type='integer'), #
     Field('eol', type='integer'),
-    Field('rnk', type='string', length=name_rank_chars),
+    Field('rnk', type='string', length=name_rank_chars),  # The taxonomic rank, e.f. "genus"
     Field('raw_popularity', type='double'),
     Field('popularity', type='double'),
     #the following 5 fields are sources listed by the OpenTree
@@ -329,11 +329,9 @@ db.define_table('vernacular_by_name',
 
 # tables for image references. These are mostly intended for leaves
 # on the tree. It is more robust to populate nodes by picking the
-# highest-scoring child leaf, using ordered_nodes. This can be
-# done every time a new tree is generated
-# e.g. to the EOL pages batch API. Note that this saves the 
-# EOL data object ID, but not the image itself: this may need to be downloaded 
-# separately, if you want a local store. 
+# highest-scoring child leaf, using ordered_nodes. Note that this stores the 
+# source object ID, but not the image itself: this may need to be downloaded 
+# separately, if you want a local copy. 
 db.define_table('images_by_ott',
     Field('ott', type='integer', notnull=True, requires=IS_NOT_EMPTY()),
     Field('src', type='integer', notnull=True),
@@ -468,6 +466,7 @@ db.define_table('reservations',
     # a login, we will always use the reservations.username value.
     # The reservations.username field is optional but needed if the user is to have a
     # "public" page of all their sponsorships 
+    # NB: Ideally the default of this field would be None, not "" - https://github.com/OneZoom/OZtree/issues/645
     Field('e_mail', type='string', length=200, requires=IS_EMPTY_OR(IS_EMAIL())),
     Field('twitter_name', type='text'),
     Field('allow_contact', type=boolean, default=False),
@@ -649,8 +648,8 @@ db.define_table('uncategorised_donation',
 
 # this table defines the current pricing cutoff points
 db.define_table('prices',
-    Field('price', type='integer', unique=True, requires=IS_NOT_EMPTY()),
-    Field('perpetuity_price', type='integer', requires=IS_NOT_EMPTY()),
+    Field('price', type='integer', unique=True),
+    Field('perpetuity_price', type='integer'),
     # Map the "normal" 4 year price to the in-perpetuity price
     Field('quantile', type='double'),
     Field('n_leaves', type='integer'),
@@ -772,10 +771,10 @@ db.define_table('tourstop',
     Field('identifier', type='string', notnull=True),  # Unique identifier for tourstop, for establishing symlinks
     Field('ord', type='integer', notnull=True),  # The position of this tourstop in the tour, starting with 1
     Field('ott', type='integer', notnull=False),  # The OTT this tourstop points at. NULL => return to start
-    Field('secondary_ott', type='integer', notnull=True),  # A second OTT when targeting a common ancestor
+    Field('secondary_ott', type='integer', notnull=True, default=0),  # A second OTT when targeting a common ancestor
     Field('qs_opts', type='string', notnull=False, default=''),  # QS-style options to apply to modify tourstop, e.g. into_node=true&initmark=...
     Field('author', type='text', notnull=True, default=''),  # Author of tourstop (doesn't necessarily match tour in case of remix)
-    Field('transition_in', type='string', notnull=True, requires=IS_IN_SET(('fly', 'leap', 'fly_straight'))),  # Transition to use when flying to stop
+    Field('transition_in', type='string', notnull=True, requires=IS_IN_SET(('fly', 'leap', 'fly_straight')), default='fly'),  # Transition to use when flying to stop
     Field('fly_in_speed', type='double', notnull=False, default=1),  # Speed relative to global_anim_speed
     Field('transition_in_wait', type='integer', notnull=False),  # How long to wait before entering into transition
     Field('stop_wait', type='integer', notnull=False),  # How long to wait at this stop (null => wait until "next" is pressed)
@@ -783,7 +782,7 @@ db.define_table('tourstop',
     Field('template_data', type='text', notnull=True,
         filter_in=lambda obj: json.dumps(obj),
         filter_out=lambda txt: json.loads(txt)),  # JSON template data for tourstop
-    Field('lang', type='string', notnull=True, length=3), #the 'primary' 2  or 3 letter 'lang' code for this name (e.g. 'en', 'cmn'). See http://www.w3.org/International/articles/language-tags/
+    Field('lang', type='string', notnull=True, length=3, default='en'), #the 'primary' 2  or 3 letter 'lang' code for this name (e.g. 'en', 'cmn'). See http://www.w3.org/International/articles/language-tags/
     Field('checked_by', type='string'),  # Who has checked the validity of this data?
     Field('checked_updated', 'datetime', default=None),  # When did they do it?
     Field('visible_in_search', 'boolean', notnull=True, default=True),  # Available in tourstop-search for remixing a tour?

@@ -21,21 +21,14 @@
     <meta name="google-site-verification" content="">
     {{if response.canonical:}}<link rel="canonical" href="{{=response.canonical}}">{{pass}}
 
-    <script type="text/javascript" src="{{=URL('static','js/jquery.min.js')}}"></script>
     <link rel="stylesheet" href="{{=URL('static','uikit-3/css/uikit.min.css')}}" />
     <script src="{{=URL('static','uikit-3/js/uikit.min.js')}}"></script>
     <script src="{{=URL('static','uikit-3/js/uikit-icons.min.js')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{=URL('static', 'css/content.css')}}" />
-    
-    {{
-    response.include_meta()
-    response.include_files()
-    }}
-    <!-- include 'web2py_ajax.html' could be done here, but it performs more than we want so we disect it and keep only the bits we really need -->
-
+    {{include 'web2py.html'}}
 
     {{if is_testing:}}<script>window.is_testing = true;</script>{{pass}}
-    {{include '../static/OZTreeModule/dist/OZ_main.html'}}
+    {{include '../static/OZTreeModule/dist/OZentry.html'}}
     {{include '../static/OZTreeModule/dist/OZui.html'}}
     <script>var OZstrings={{include 'treeviewer/js_strings.json'}}</script>
     {{include 'treeviewer/server_urls.html' }}
@@ -86,6 +79,7 @@
       <div uk-dropdown="pos: bottom-left; offset: 0" class="search_dropdown selectable uk-overflow-auto">
         <div class="no_results">{{=T("No results found")}}</div>
         <dl class="search_hits"></dl>
+        <div class="recents"></div>
         <dl class="popular_species"></dl>
       </div>
     </div>
@@ -93,6 +87,7 @@
 <script>
 (function() {
     var box_selector = $('#header_searchnav');
+    OZui.setup_recents_list($('.recents', box_selector));
 
     $('.searchinput input', box_selector)
         .on('keydown', function(event) {
@@ -108,6 +103,7 @@
             var dropdown = $('.search_dropdown', searchbox);
             if (search_term.length==0) {
                 $('.popular_species', dropdown).show();
+                $('.recents', dropdown).show();
                 {{if is_testing:}}console.log("Hiding no_result section of dropdown");{{pass}}
                 $('.no_results', dropdown).hide();
                 $('.search_hits', dropdown).empty();
