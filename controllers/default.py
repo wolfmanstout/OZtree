@@ -1586,7 +1586,7 @@ def lang_export():
     import gluon.languages
 
     def get_lang(lang):
-        if re.search('[^a-z0-9_\-]', lang):
+        if re.search(r'[^a-z0-9_\-]', lang):
             raise ValueError("Invalid language %s" % lang)
         return gluon.languages.read_dict(os.path.join(os.path.dirname(T.language_file), '%s.py' % lang))
 
@@ -1683,6 +1683,9 @@ def colkey():
     return dict()
 
 def team():
+    return dict()
+
+def past_contributors():
     return dict()
 
 def timeline():
