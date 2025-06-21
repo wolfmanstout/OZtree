@@ -17,3 +17,4 @@ node_modules
 OZprivate/ServerScripts/Tests/BlatSearch.code_cache
 .env
 /static/uikit-3/
+.claude/settings.local.json
